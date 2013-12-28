@@ -305,26 +305,22 @@ define(function(require, exports, module) {
             s.$informUndoManager = lang.delayedCall(function() { s.$deltas = []; });
     
             // Copy over 'settings' from the session.
-            s.setTabSize(session.getTabSize());
-            s.setUseSoftTabs(session.getUseSoftTabs());
-            s.setOverwrite(session.getOverwrite());
-            s.setBreakpoints(session.getBreakpoints());
-            s.setUseWrapMode(session.getUseWrapMode());
-            s.setUseWorker(session.getUseWorker());
-            s.setWrapLimitRange(session.$wrapLimitRange.min,
-                                session.$wrapLimitRange.max);
+            s.setOptions(session.getOptions());
             s.$foldData = session.$cloneFoldData();
             
-            // @Harutyun
             session.on("changeAnnotation", function(){
-                s.setBreakpoints(session.getBreakpoints());
-            });
+                s.setAnnotations(session.getAnnotations());
+            })();
             session.on("changeMode", function(e){
                 s.setMode(session.getMode());
             });
-    
+            session.on("changeBreakpoint", function(){
+                s.$breakpoints = session.$breakpoints;
+                s._emit("changeBreakpoint", {});
+            })();
+            
             return s;
-        };
+        }
         
         function setFinalState(editor, session){
             var splitInfo   = splits[editor.name];
