@@ -148,6 +148,12 @@ define(function(require, exports, module) {
             ace.on("themeChange", function(e){
                 editors.forEach(function(editor){
                     editor.setTheme(e.path);
+                    
+                    var theme = ace.theme;
+                    if (theme.isDark)
+                        ui.setStyleClass(editor.splitbox.$ext, "dark");
+                    else
+                        ui.setStyleClass(editor.splitbox.$ext, "", ["dark"]);
                 });
             }, plugin);
         }
@@ -186,8 +192,6 @@ define(function(require, exports, module) {
         function startSplit(e, grabber, editor){
             var container = grabber;
             var drag      = grabber;
-            
-            grabber.className = "splitgrabber splitting";
             
             // Set Top
             drag.style.zIndex = 1000000;
@@ -264,6 +268,7 @@ define(function(require, exports, module) {
             // New Editor
             var editor2 = new Editor(new Renderer(topPane.$int, ace.theme));
             editors.push(editor2);
+            editor2.splitbox = splitbox;
             
             splitbox.$handle.on("dragmove", function(){
                 editor.resize();
@@ -343,8 +348,6 @@ define(function(require, exports, module) {
                 // Hide Grabber
                 grabber.style.display = "none";
             }
-            
-            grabber.className = "splitgrabber";
         }
         
         function UndoManagerProxy(undoManager, session) {
