@@ -3,22 +3,6 @@ define(function(require, exports, module) {
     main.provides = ["ace.split"];
     return main;
     
-    /*
-        Issues:
-        - Folding isnt synced (should it?)
-        - No annotations
-        - No breakpoints
-        - Per document settings (wrap) don't work yet
-        * Theme Switching
-        * Setting Options
-        * Resize when resizing split
-        * Split is per tab, needs to switch accordingly
-        * Proper resizing after initial create
-        * Remove splitter / extra ace after split is removed
-        * Record state
-        * Retrieve state
-    */
-
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
         var ui     = imports.ui;
@@ -145,6 +129,12 @@ define(function(require, exports, module) {
                         
                     var grabber = editor.aml.$int.querySelector(".splitgrabber");
                     grabber.style.display = "none";
+                });
+                
+                editor.on("resize", function(e){
+                    var splitInfo = splits[editor.name];
+                    if (!splitInfo || !splitInfo.topPane.visible) return;
+                    splitInfo.editor2.resize(true); // @Harutyun
                 });
             });
             
@@ -333,6 +323,7 @@ define(function(require, exports, module) {
                                 session.$wrapLimitRange.max);
             s.$foldData = session.$cloneFoldData();
             
+            // @Harutyun
             session.on("changeAnnotation", function(){
                 s.setBreakpoints(session.getBreakpoints());
             });
