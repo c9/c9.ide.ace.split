@@ -150,10 +150,11 @@ define(function(require, exports, module) {
                     editor.setTheme(e.path);
                     
                     var theme = ace.theme;
+                    var node  = editor.splitbox.$ext.parentNode;
                     if (theme.isDark)
-                        ui.setStyleClass(editor.splitbox.$ext, "dark");
+                        ui.setStyleClass(node, "dark");
                     else
-                        ui.setStyleClass(editor.splitbox.$ext, "", ["dark"]);
+                        ui.setStyleClass(node, "", ["dark"]);
                 });
             }, plugin);
         }
