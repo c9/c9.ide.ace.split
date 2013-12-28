@@ -126,7 +126,10 @@ define(function(require, exports, module) {
                         session2.setScrollTop(state.scrolltop);
                     if (state.scrollleft)
                         session2.setScrollLeft(state.scrollleft);
-                        
+                    
+                    if (state.options)
+                        session2.setOptions(state.options);
+                    
                     var grabber = editor.aml.$int.querySelector(".splitgrabber");
                     grabber.style.display = "none";
                 });
@@ -136,18 +139,15 @@ define(function(require, exports, module) {
                     if (!splitInfo || !splitInfo.topPane.visible) return;
                     splitInfo.editor2.resize(true); // @Harutyun
                 });
+                
+                editor.on("unload", function(e){
+                    delete splits[editor.name];
+                });
             });
             
             ace.on("themeChange", function(e){
                 editors.forEach(function(editor){
                     editor.setTheme(e.path);
-                });
-            }, plugin);
-            
-            ace.on("settingsUpdate", function(e){
-                var options = e.options;
-                editors.forEach(function(editor){
-                    editor.setOptions(options);
                 });
             }, plugin);
         }
@@ -265,17 +265,6 @@ define(function(require, exports, module) {
             var editor2 = new Editor(new Renderer(topPane.$int, ace.theme));
             editors.push(editor2);
             
-            // editor.on("focus", function() {
-            //     this._emit("focus", editor);
-            // }.bind(this));
-            
-            // var htmlNode = editor2.ace.container;
-            // htmlNode.style.position = "absolute";
-            // htmlNode.style.left = "0px";
-            // htmlNode.style.right = "0px";
-            // htmlNode.style.top = "0px";
-            // htmlNode.style.bottom = "0px";
-            
             splitbox.$handle.on("dragmove", function(){
                 editor.resize();
                 editor2.resize();
@@ -287,6 +276,9 @@ define(function(require, exports, module) {
                 var session = editor.activeDocument.getSession();
                 setFinalState(editor, session);
             });
+            ace.on("settingsUpdate", function(e){
+                editor2.setOptions(e.options);
+            }, editor);
             
             splits[editor.name] = {
                 splitbox   : splitbox,
