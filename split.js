@@ -1,35 +1,31 @@
 define(function(require, exports, module) {
-    main.consumes = [
-        "Plugin", "ui", "commands", "ace"
-    ];
+    main.consumes = ["Plugin", "ui", "ace"];
     main.provides = ["ace.split"];
     return main;
     
     /*
         Issues:
-        - Folding isnt synced
+        - Folding isnt synced (should it?)
         - No annotations
         - No breakpoints
-        - Theme Switching
-        - Setting Options
-        - Resize when resizing split
-        - Split is per tab, needs to switch accordingly
-        - Proper resizing after initial create
-        - Remove splitter / extra ace after split is removed
+        - Per document settings (wrap) don't work yet
+        * Theme Switching
+        * Setting Options
+        * Resize when resizing split
+        * Split is per tab, needs to switch accordingly
+        * Proper resizing after initial create
+        * Remove splitter / extra ace after split is removed
+        * Record state
+        * Retrieve state
     */
 
     function main(options, imports, register) {
-        var Plugin   = imports.Plugin;
-        var ui       = imports.ui;
-        var commands = imports.commands;
-        var layout   = imports.layout;
-        var ace      = imports.ace;
-        var event    = require("ace/lib/event");
+        var Plugin = imports.Plugin;
+        var ui     = imports.ui;
+        var ace    = imports.ace;
+        var event  = require("ace/lib/event");
         
-        var oop          = require("ace/lib/oop");
         var lang         = require("ace/lib/lang");
-        var EventEmitter = require("ace/lib/event_emitter").EventEmitter;
-        
         var Editor       = require("ace/editor").Editor;
         var Renderer     = require("ace/virtual_renderer").VirtualRenderer;
         var EditSession  = require("ace/edit_session").EditSession;
@@ -39,7 +35,7 @@ define(function(require, exports, module) {
         var plugin = new Plugin("Ajax.org", main.consumes);
         var emit   = plugin.getEmitter();
         
-        var editors = [];
+        var editors = [], splits = {};
         
         var loaded = false;
         function load() {
@@ -53,21 +49,115 @@ define(function(require, exports, module) {
                 draw();
                 
                 var editor = e.editor;
+                var grabber;
+                
                 editor.once("draw", function(){
-                    createGrabber(editor);
+                    grabber = createGrabber(editor);
                 }, plugin);
+                
+                editor.on("documentActivate", function(e){
+                    var doc       = e.doc;
+                    var session   = doc.getSession();
+                    var split     = session.split;
+                    var splitInfo = splits[doc.editor.name];
+                    
+                    // If we are not in split mode and the editor is not split
+                    // lets do nothing.
+                    if (!split && !splitInfo)
+                        return;
+                    
+                    if (split) {
+                        // Make sure we have a split inited for this editor
+                        if (!splitInfo)
+                            splitInfo = initSplit(editor, split.height);
+                            
+                        var editor2  = splitInfo.editor2;
+                        
+                        // Set Session
+                        editor2.setSession(split.session2);
+                        
+                        // Set Height
+                        splitInfo.topPane.setHeight(split.height);
+                        
+                        // Show bottom pane
+                        splitInfo.topPane.show();
+                        
+                        // Hide Grabber
+                        grabber.style.display = "none";
+                    }
+                    else {
+                        // Hide bottom pane
+                        splitInfo.topPane.hide();
+                        
+                        // Show Grabber
+                        grabber.style.display = "block";
+                    }
+                });
+                
+                editor.on("getState", function(e){
+                    var session = e.doc.getSession();
+                    var state   = e.state;
+                    
+                    if (e.filter || !session.split) 
+                        return;
+                    
+                    var session2 = session.split.session2;
+                    
+                    state.split = {
+                        height     : session.split.height,
+                        
+                        // Scroll state
+                        scrolltop  : session2.getScrollTop(),
+                        scrollleft : session2.getScrollLeft(),
+                        
+                        // Selection
+                        selection  : session2.selection.toJSON()
+                    };
+                });
+                
+                editor.on("setState", function(e){
+                    var state   = e.state.split;
+                    var session = e.doc.getSession();
+                    
+                    if (!state)
+                        return;
+                    
+                    var splitInfo = initSplit(editor, state.height);
+                    var session2  = cloneSession(session.session);
+                    
+                    session.split  = {
+                        height   : state.height,
+                        session2 : session2
+                    };
+                    
+                    // Set 2nd Session
+                    splitInfo.editor2.setSession(session2);
+                    
+                    // Set selection
+                    if (state.selection)
+                        session2.selection.fromJSON(state.selection);
+                    
+                    // Set scroll state
+                    if (state.scrolltop)
+                        session2.setScrollTop(state.scrolltop);
+                    if (state.scrollleft)
+                        session2.setScrollLeft(state.scrollleft);
+                        
+                    var grabber = editor.aml.$int.querySelector(".splitgrabber");
+                    grabber.style.display = "none";
+                });
             });
             
-            ace.on("themeChange", function(){
+            ace.on("themeChange", function(e){
                 editors.forEach(function(editor){
-                    
+                    editor.setTheme(e.path);
                 });
             }, plugin);
             
             ace.on("settingsUpdate", function(e){
                 var options = e.options;
                 editors.forEach(function(editor){
-                    
+                    editor.setOptions(options);
                 });
             }, plugin);
         }
@@ -97,6 +187,8 @@ define(function(require, exports, module) {
             plugin.addOther(function(){
                 grabber.parentNode.removeChild(grabber);
             });
+            
+            return grabber;
         }
         
         /***** Methods *****/
@@ -110,64 +202,82 @@ define(function(require, exports, module) {
             // Set Top
             drag.style.zIndex = 1000000;
             
-            var offsetX = e.clientX - (parseInt(container.style.left, 10) || 0);
             var offsetY = e.clientY - (parseInt(container.style.top, 10) || 0);
             var moved   = false;
-            var startX  = e.clientX - offsetX;
             var startY  = e.clientY - offsetY;
+            var offset  = e.offsetY;
+            
+            var session = editor.activeDocument.getSession();
             
             event.capture(container, function(e) {
-                var x = e.clientX - offsetX;
                 var y = e.clientY - offsetY;
                 
                 if (!moved) {
-                    if (Math.abs(x - startX) + Math.abs(y - startY) > 5) {
+                    if (Math.abs(y - startY) > 3) {
                         moved = true;
-                        initSplit(grabber.parentNode, editor);
+                        var percentage = ((y - startY) / grabber.parentNode.offsetHeight) * 100;
+                        var splitInfo  = initSplit(editor, percentage);
+                        session.split  = {
+                            height   : percentage + "%",
+                            session2 : cloneSession(editor.ace.session)
+                        };
+                        
+                        // Set 2nd Session
+                        splitInfo.editor2.setSession(session.split.session2);
+                        
+                        // Start splitter
+                        splitInfo.splitbox.$handle.$ext.onmousedown({ 
+                            clientY : e.clientY, 
+                            offsetY : -7 + offset
+                        });
+                        
+                        // Hide Grabber
+                        grabber.style.display = "none";
                     }
                     else return;
                 }
-                
-                drag.style.top = y + "px";
-                
-                drag.style.display = "block";
             }, function() {
-                if (moved) {
-                    // layout.resizeTo(plugin, 
-                    //     drag.offsetWidth, edge.indexOf("w") > -1, 
-                    //     drag.offsetHeight, edge.indexOf("n") > -1);
-                }
-                
-                drag.style.zIndex = "";
-                drag.style.display = "none";
+                if (moved)
+                    setFinalState(editor, session);
             });
             
             event.stopEvent(e);
         }
         
-        function initSplit(container, editor){
-            var amlNode = container.host;
+        function initSplit(editor, percentage){
+            if (splits[editor.name]) {
+                var splitInfo = splits[editor.name];
+                splitInfo.topPane.show();
+                return splitInfo;
+            }
+            
+            var container = editor.aml.$int;
+            var amlNode   = container.host;
             // @todo detect if this already happened
             
             var splitbox = amlNode.appendChild(new ui.vsplitbox({ 
                 "class"  : "ace_split",
                 padding  : 7,
+                edge     : "7 0 0 0",
                 splitter : true 
             }));
             
-            var topPane    = splitbox.appendChild(new ui.bar({ height: "50%" }));
+            var topPane    = splitbox.appendChild(new ui.bar({ 
+                height: percentage + "%" 
+            }));
             var bottomPane = splitbox.appendChild(new ui.bar());
             
             // Original Editor
-            topPane.$int.appendChild(editor.ace.container);
+            bottomPane.$int.appendChild(editor.ace.container);
+            editor.ace.container.style.top = "0px";
             
             // New Editor
-            var editor2 = new Editor(new Renderer(bottomPane.$int, ace.theme));
+            var editor2 = new Editor(new Renderer(topPane.$int, ace.theme));
+            editors.push(editor2);
+            
             // editor.on("focus", function() {
             //     this._emit("focus", editor);
             // }.bind(this));
-            
-            editor2.setSession(cloneSession(editor.ace.session));
             
             // var htmlNode = editor2.ace.container;
             // htmlNode.style.position = "absolute";
@@ -175,6 +285,28 @@ define(function(require, exports, module) {
             // htmlNode.style.right = "0px";
             // htmlNode.style.top = "0px";
             // htmlNode.style.bottom = "0px";
+            
+            splitbox.$handle.on("dragmove", function(){
+                editor.resize();
+                editor2.resize();
+            });
+            splitbox.$handle.on("dragdrop", function(){
+                editor.resize();
+                editor2.resize();
+                
+                var session = editor.activeDocument.getSession();
+                setFinalState(editor, session);
+            });
+            
+            splits[editor.name] = {
+                splitbox   : splitbox,
+                topPane    : topPane,
+                bottomPane : bottomPane,
+                editor     : editor,
+                editor2    : editor2
+            };
+            
+            return splits[editor.name];
         }
         
         function cloneSession(session) {
@@ -200,9 +332,41 @@ define(function(require, exports, module) {
             s.setWrapLimitRange(session.$wrapLimitRange.min,
                                 session.$wrapLimitRange.max);
             s.$foldData = session.$cloneFoldData();
+            
+            session.on("changeAnnotation", function(){
+                s.setBreakpoints(session.getBreakpoints());
+            });
+            session.on("changeMode", function(e){
+                s.setMode(session.getMode());
+            });
     
             return s;
         };
+        
+        function setFinalState(editor, session){
+            var splitInfo   = splits[editor.name];
+            var pixelHeight = splitInfo.topPane.getHeight();
+            
+            var grabber = editor.aml.$int.querySelector(".splitgrabber");
+            
+            if (pixelHeight < 3) {
+                // Remove the split
+                splitInfo.topPane.hide();
+                delete session.split;
+                
+                // Show Grabber
+                grabber.style.display = "block";
+            }
+            else {
+                // Record the height
+                session.split.height = splitInfo.topPane.height;
+                
+                // Hide Grabber
+                grabber.style.display = "none";
+            }
+            
+            grabber.className = "splitgrabber";
+        }
         
         function UndoManagerProxy(undoManager, session) {
             this.$u = undoManager;
