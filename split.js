@@ -286,6 +286,22 @@ define(function(require, exports, module) {
                 editor2.setOptions(e.options);
             }, editor);
             
+            var lastFocused = editor2;
+            editor2.on("focus", function() {
+                lastFocused = editor2;
+            });
+            
+            editor.ace.on("focus", function() {
+                lastFocused = null;
+            });
+            
+            editor.on("getAce", function() {
+                if (lastFocused)
+                    return editor2;
+            });
+            
+            editor.addEditor(editor2);
+            
             splits[editor.name] = {
                 splitbox   : splitbox,
                 topPane    : topPane,
@@ -324,6 +340,8 @@ define(function(require, exports, module) {
                 s.$breakpoints = session.$breakpoints;
                 s._emit("changeBreakpoint", {});
             })();
+            
+            s.c9doc = session.c9doc;
             
             return s;
         }
