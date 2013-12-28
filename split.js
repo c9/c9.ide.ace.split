@@ -211,11 +211,11 @@ define(function(require, exports, module) {
                     if (Math.abs(y - startY) > 3) {
                         moved = true;
                         var percentage = ((y - startY) / grabber.parentNode.offsetHeight) * 100;
-                        var splitInfo  = initSplit(editor, percentage);
                         session.split  = {
                             height   : percentage + "%",
                             session2 : cloneSession(editor.ace.session)
                         };
+                        var splitInfo  = initSplit(editor, percentage);
                         
                         // Set 2nd Session
                         splitInfo.editor2.setSession(session.split.session2);
