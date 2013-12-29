@@ -146,19 +146,6 @@ define(function(require, exports, module) {
                     delete splits[editor.name];
                 });
             });
-            
-            ace.on("themeChange", function(e){
-                editors.forEach(function(editor){
-                    editor.setTheme(e.path);
-                    
-                    var theme = ace.theme;
-                    var node  = editor.splitbox.$ext.parentNode;
-                    if (theme.isDark)
-                        ui.setStyleClass(node, "dark");
-                    else
-                        ui.setStyleClass(node, "", ["dark"]);
-                });
-            }, plugin);
         }
         
         var drawn = false;
@@ -271,7 +258,6 @@ define(function(require, exports, module) {
             // New Editor
             var editor2 = new Editor(new Renderer(topPane.$int, ace.theme));
             editors.push(editor2);
-            editor2.splitbox = splitbox;
             
             splitbox.$handle.on("dragmove", function(){
                 editor.resize();
@@ -287,6 +273,19 @@ define(function(require, exports, module) {
             ace.on("settingsUpdate", function(e){
                 editor2.setOptions(e.options);
             }, editor);
+            
+            function setTheme(){
+                var theme = ace.theme;
+                editor2.setTheme(theme.path);
+                
+                var node = splitbox.$ext.parentNode;
+                if (theme.isDark)
+                    ui.setStyleClass(node, "dark");
+                else
+                    ui.setStyleClass(node, "", ["dark"]);
+            }
+            ace.on("themeChange", setTheme, editor);
+            setTheme();
             
             var lastFocused = editor2;
             editor2.on("focus", function() {
