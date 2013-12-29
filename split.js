@@ -14,6 +14,8 @@ define(function(require, exports, module) {
         var Renderer     = require("ace/virtual_renderer").VirtualRenderer;
         var EditSession  = require("ace/edit_session").EditSession;
         
+        // http://screencast.com/t/nQm5q5fyEj
+        
         /***** Initialization *****/
         
         var plugin = new Plugin("Ajax.org", main.consumes);
@@ -340,6 +342,9 @@ define(function(require, exports, module) {
                 s.$breakpoints = session.$breakpoints;
                 s._emit("changeBreakpoint", {});
             })();
+            session.on("setWrap", function(e){
+                s.setOption("wrap", e.value);
+            });
             
             s.c9doc = session.c9doc;
             
