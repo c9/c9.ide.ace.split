@@ -202,7 +202,7 @@ define(function(require, exports, module) {
                         var percentage = ((y - startY) / grabber.parentNode.offsetHeight) * 100;
                         session.split  = {
                             height   : percentage + "%",
-                            session2 : cloneSession(editor.ace.session)
+                            session2 : cloneSession(session.session)
                         };
                         var splitInfo  = initSplit(editor, percentage);
                         
