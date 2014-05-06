@@ -5,21 +5,21 @@ define(function(require, exports, module) {
     
     function main(options, imports, register) {
         var Plugin = imports.Plugin;
-        var ui     = imports.ui;
-        var ace    = imports.ace;
-        var event  = require("ace/lib/event");
+        var ui = imports.ui;
+        var ace = imports.ace;
+        var event = require("ace/lib/event");
         
-        var lang         = require("ace/lib/lang");
-        var Editor       = require("ace/editor").Editor;
-        var Renderer     = require("ace/virtual_renderer").VirtualRenderer;
-        var EditSession  = require("ace/edit_session").EditSession;
+        var lang = require("ace/lib/lang");
+        var Editor = require("ace/editor").Editor;
+        var Renderer = require("ace/virtual_renderer").VirtualRenderer;
+        var EditSession = require("ace/edit_session").EditSession;
         
         // http://screencast.com/t/nQm5q5fyEj
         
         /***** Initialization *****/
         
         var plugin = new Plugin("Ajax.org", main.consumes);
-        var emit   = plugin.getEmitter();
+        var emit = plugin.getEmitter();
         
         var editors = [], splits = {};
         
@@ -28,7 +28,7 @@ define(function(require, exports, module) {
             if (loaded) return false;
             loaded = true;
             
-            ace.on("create", function(e){
+            ace.on("create", function(e) {
                 if (e.editor.type != "ace")
                     return;
                 
@@ -41,10 +41,10 @@ define(function(require, exports, module) {
                     grabber = createGrabber(editor);
                 }, plugin);
                 
-                editor.on("documentActivate", function(e){
-                    var doc       = e.doc;
-                    var session   = doc.getSession();
-                    var split     = session.split;
+                editor.on("documentActivate", function(e) {
+                    var doc = e.doc;
+                    var session = doc.getSession();
+                    var split = session.split;
                     var splitInfo = splits[doc.editor.name];
                     
                     // If we are not in split mode and the editor is not split
@@ -57,7 +57,7 @@ define(function(require, exports, module) {
                         if (!splitInfo)
                             splitInfo = initSplit(editor, split.height);
                             
-                        var editor2  = splitInfo.editor2;
+                        var editor2 = splitInfo.editor2;
                         
                         // Set Session
                         editor2.setSession(split.session2);
@@ -80,9 +80,9 @@ define(function(require, exports, module) {
                     }
                 });
                 
-                editor.on("getState", function(e){
+                editor.on("getState", function(e) {
                     var session = e.doc.getSession();
-                    var state   = e.state;
+                    var state = e.state;
                     
                     if (e.filter || !session.split) 
                         return;
@@ -90,29 +90,29 @@ define(function(require, exports, module) {
                     var session2 = session.split.session2;
                     
                     state.split = {
-                        height     : session.split.height,
+                        height: session.split.height,
                         
                         // Scroll state
-                        scrolltop  : session2.getScrollTop(),
-                        scrollleft : session2.getScrollLeft(),
+                        scrolltop: session2.getScrollTop(),
+                        scrollleft: session2.getScrollLeft(),
                         
                         // Selection
-                        selection  : session2.selection.toJSON()
+                        selection: session2.selection.toJSON()
                     };
                 });
                 
-                editor.on("setState", function(e){
-                    var state   = e.state.split;
+                editor.on("setState", function(e) {
+                    var state = e.state.split;
                     var session = e.doc.getSession();
                     
                     if (!state)
                         return;
                     
                     var splitInfo = initSplit(editor, state.height);
-                    var session2  = cloneSession(session.session);
+                    var session2 = cloneSession(session.session);
                     
-                    session.split  = {
-                        height   : state.height,
+                    session.split = {
+                        height: state.height,
                         session2 : session2
                     };
                     
@@ -136,13 +136,13 @@ define(function(require, exports, module) {
                     grabber.style.display = "none";
                 });
                 
-                editor.on("resize", function(e){
+                editor.on("resize", function(e) {
                     var splitInfo = splits[editor.name];
                     if (!splitInfo || !splitInfo.topPane.visible) return;
                     splitInfo.editor2.resize(true); // @Harutyun
                 });
                 
-                editor.on("unload", function(e){
+                editor.on("unload", function(e) {
                     delete splits[editor.name];
                 });
             });
@@ -159,14 +159,14 @@ define(function(require, exports, module) {
             emit("draw");
         }
         
-        function createGrabber(editor){
+        function createGrabber(editor) {
             var htmlNode = editor.ace.container.parentNode;
-            var grabber  = document.createElement("div");
+            var grabber = document.createElement("div");
             htmlNode.appendChild(grabber);
             grabber.className = "splitgrabber";
             grabber.innerHTML = "=";
             
-            grabber.addEventListener("mousedown", function(e){
+            grabber.addEventListener("mousedown", function(e) {
                 startSplit(e, grabber, editor);
             });
             
@@ -179,17 +179,17 @@ define(function(require, exports, module) {
         
         /***** Methods *****/
         
-        function startSplit(e, grabber, editor){
+        function startSplit(e, grabber, editor) {
             var container = grabber;
-            var drag      = grabber;
+            var drag = grabber;
             
             // Set Top
             drag.style.zIndex = 1000000;
             
             var offsetY = e.clientY - (parseInt(container.style.top, 10) || 0);
-            var moved   = false;
-            var startY  = e.clientY - offsetY;
-            var offset  = e.offsetY;
+            var moved = false;
+            var startY = e.clientY - offsetY;
+            var offset = e.offsetY;
             
             var session = editor.activeDocument.getSession();
             
@@ -200,19 +200,19 @@ define(function(require, exports, module) {
                     if (Math.abs(y - startY) > 3) {
                         moved = true;
                         var percentage = ((y - startY) / grabber.parentNode.offsetHeight) * 100;
-                        session.split  = {
-                            height   : percentage + "%",
+                        session.split = {
+                            height: percentage + "%",
                             session2 : cloneSession(session.session)
                         };
-                        var splitInfo  = initSplit(editor, percentage);
+                        var splitInfo = initSplit(editor, percentage);
                         
                         // Set 2nd Session
                         splitInfo.editor2.setSession(session.split.session2);
                         
                         // Start splitter
                         splitInfo.splitbox.$handle.$ext.onmousedown({ 
-                            clientY : e.clientY, 
-                            offsetY : -7 + offset
+                            clientY: e.clientY, 
+                            offsetY: -7 + offset
                         });
                         
                         // Hide Grabber
@@ -228,7 +228,7 @@ define(function(require, exports, module) {
             event.stopEvent(e);
         }
         
-        function initSplit(editor, percentage){
+        function initSplit(editor, percentage) {
             if (splits[editor.name]) {
                 var splitInfo = splits[editor.name];
                 splitInfo.topPane.show();
@@ -236,17 +236,17 @@ define(function(require, exports, module) {
             }
             
             var container = editor.aml.$int;
-            var amlNode   = container.host;
+            var amlNode = container.host;
             // @todo detect if this already happened
             
             var splitbox = amlNode.appendChild(new ui.vsplitbox({ 
                 "class"  : "ace_split",
-                padding  : 7,
-                edge     : "7 0 0 0",
-                splitter : true 
+                padding: 7,
+                edge: "7 0 0 0",
+                splitter: true 
             }));
             
-            var topPane    = splitbox.appendChild(new ui.bar({ 
+            var topPane = splitbox.appendChild(new ui.bar({ 
                 height: percentage + "%" 
             }));
             var bottomPane = splitbox.appendChild(new ui.bar());
@@ -270,7 +270,7 @@ define(function(require, exports, module) {
                 var session = editor.activeDocument.getSession();
                 setFinalState(editor, session);
             });
-            ace.on("settingsUpdate", function(e){
+            ace.on("settingsUpdate", function(e) {
                 editor2.setOptions(e.options);
             }, editor);
             
@@ -304,10 +304,10 @@ define(function(require, exports, module) {
             editor.addEditor(editor2);
             
             splits[editor.name] = {
-                splitbox   : splitbox,
-                topPane    : topPane,
-                bottomPane : bottomPane,
-                editor     : editor,
+                splitbox: splitbox,
+                topPane: topPane,
+                bottomPane: bottomPane,
+                editor: editor,
                 editor2    : editor2
             };
             
@@ -334,14 +334,14 @@ define(function(require, exports, module) {
             session.on("changeAnnotation", function(){
                 s.setAnnotations(session.getAnnotations());
             })();
-            session.on("changeMode", function(e){
+            session.on("changeMode", function(e) {
                 s.setMode(session.getMode());
             });
             session.on("changeBreakpoint", function(){
                 s.$breakpoints = session.$breakpoints;
                 s._emit("changeBreakpoint", {});
             })();
-            session.on("setWrap", function(e){
+            session.on("setWrap", function(e) {
                 s.setOption("wrap", e.value);
             });
             
@@ -350,8 +350,8 @@ define(function(require, exports, module) {
             return s;
         }
         
-        function setFinalState(editor, session){
-            var splitInfo   = splits[editor.name];
+        function setFinalState(editor, session) {
+            var splitInfo = splits[editor.name];
             var pixelHeight = splitInfo.topPane.getHeight();
             
             var grabber = editor.aml.$int.querySelector(".splitgrabber");
@@ -423,7 +423,7 @@ define(function(require, exports, module) {
         });
         plugin.on("unload", function() {
             loaded = false;
-            drawn  = false;
+            drawn = false;
         });
         
         /***** Register and define API *****/
@@ -432,7 +432,7 @@ define(function(require, exports, module) {
          * 
          **/
         plugin.freezePublicAPI({
-            _events : [
+            _events: [
                 /**
                  * @event draw
                  */
