@@ -9,16 +9,10 @@ define(function(require, exports, module) {
         var Plugin = imports.Plugin;
         var ui = imports.ui;
         var ace = imports.ace;
-        var tabbehavior = imports.tabbehavior;
-        var tabManager = imports.tabManager;
-        var menus = imports.menus;
         
         var event = require("ace/lib/event");
-        var lang = require("ace/lib/lang");
         var Editor = require("ace/editor").Editor;
         var Renderer = require("ace/virtual_renderer").VirtualRenderer;
-        var EditSession = require("ace/edit_session").EditSession;
-        var basename = require("path").basename;
         
         /***** Initialization *****/
         
