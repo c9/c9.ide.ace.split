@@ -1,5 +1,7 @@
 define(function(require, exports, module) {
-    main.consumes = ["Plugin", "ui", "ace"];
+    main.consumes = [
+        "Plugin", "ui", "ace", "tabbehavior", "menus", "tabManager"
+    ];
     main.provides = ["ace.split"];
     return main;
     
@@ -7,14 +9,16 @@ define(function(require, exports, module) {
         var Plugin = imports.Plugin;
         var ui = imports.ui;
         var ace = imports.ace;
-        var event = require("ace/lib/event");
+        var tabbehavior = imports.tabbehavior;
+        var tabManager = imports.tabManager;
+        var menus = imports.menus;
         
+        var event = require("ace/lib/event");
         var lang = require("ace/lib/lang");
         var Editor = require("ace/editor").Editor;
         var Renderer = require("ace/virtual_renderer").VirtualRenderer;
         var EditSession = require("ace/edit_session").EditSession;
-        
-        // http://screencast.com/t/nQm5q5fyEj
+        var basename = require("path").basename;
         
         /***** Initialization *****/
         
@@ -109,7 +113,7 @@ define(function(require, exports, module) {
                         return;
                     
                     var splitInfo = initSplit(editor, state.height);
-                    var session2 = cloneSession(session.session);
+                    var session2 = ace.cloneSession(session.session);
                     
                     session.split = {
                         height: state.height,
@@ -202,7 +206,7 @@ define(function(require, exports, module) {
                         var percentage = ((y - startY) / grabber.parentNode.offsetHeight) * 100;
                         session.split = {
                             height: percentage + "%",
-                            session2 : cloneSession(session.session)
+                            session2 : ace.cloneSession(session.session)
                         };
                         var splitInfo = initSplit(editor, percentage);
                         
@@ -314,42 +318,6 @@ define(function(require, exports, module) {
             return splits[editor.name];
         }
         
-        function cloneSession(session) {
-            var s = new EditSession(session.getDocument(), session.getMode());
-    
-            var undoManager = session.getUndoManager();
-            if (undoManager) {
-                var undoManagerProxy = new UndoManagerProxy(undoManager, s);
-                s.setUndoManager(undoManagerProxy);
-            }
-    
-            // Overwrite the default $informUndoManager function such that new deltas
-            // aren't added to the undo manager from the new and the old session.
-            s.$informUndoManager = lang.delayedCall(function() { s.$deltas = []; });
-    
-            // Copy over 'settings' from the session.
-            s.setOptions(session.getOptions());
-            s.$foldData = session.$cloneFoldData();
-            
-            session.on("changeAnnotation", function(){
-                s.setAnnotations(session.getAnnotations());
-            })();
-            session.on("changeMode", function(e) {
-                s.setMode(session.getMode());
-            });
-            session.on("changeBreakpoint", function(){
-                s.$breakpoints = session.$breakpoints;
-                s._emit("changeBreakpoint", {});
-            })();
-            session.on("setWrap", function(e) {
-                s.setOption("wrap", e.value);
-            });
-            
-            s.c9doc = session.c9doc;
-            
-            return s;
-        }
-        
         function setFinalState(editor, session) {
             var splitInfo = splits[editor.name];
             var pixelHeight = splitInfo.topPane.getHeight();
@@ -372,43 +340,6 @@ define(function(require, exports, module) {
                 grabber.style.display = "none";
             }
         }
-        
-        function UndoManagerProxy(undoManager, session) {
-            this.$u = undoManager;
-            this.$doc = session;
-        }
-        
-        (function() {
-            this.execute = function(options) {
-                this.$u.execute(options);
-            };
-        
-            this.undo = function() {
-                var selectionRange = this.$u.undo(true);
-                if (selectionRange) {
-                    this.$doc.selection.setSelectionRange(selectionRange);
-                }
-            };
-        
-            this.redo = function() {
-                var selectionRange = this.$u.redo(true);
-                if (selectionRange) {
-                    this.$doc.selection.setSelectionRange(selectionRange);
-                }
-            };
-        
-            this.reset = function() {
-                this.$u.reset();
-            };
-        
-            this.hasUndo = function() {
-                return this.$u.hasUndo();
-            };
-        
-            this.hasRedo = function() {
-                return this.$u.hasRedo();
-            };
-        }).call(UndoManagerProxy.prototype);
         
         /***** Lifecycle *****/
         
