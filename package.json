@@ -9,14 +9,12 @@
         "url": "http://github.com/c9/c9.ide.ace.split.git"
     },
     "plugins": {
-        "plugin": {
-            "split": {}
-        }
+        "split": {}
     },
     "categories": [
         "core"
     ],
     "licenses": [
-        ""
+        "MIT"
     ]
 }
