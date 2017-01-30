@@ -35,7 +35,7 @@ define(function(require, exports, module) {
                 var editor = e.editor;
                 var grabber;
                 
-                editor.once("draw", function(){
+                editor.once("draw", function() {
                     grabber = createGrabber(editor);
                 }, plugin);
                 
@@ -111,7 +111,7 @@ define(function(require, exports, module) {
                     
                     session.split = {
                         height: state.height,
-                        session2 : session2
+                        session2: session2
                     };
                     
                     // Set 2nd Session
@@ -168,7 +168,7 @@ define(function(require, exports, module) {
                 startSplit(e, grabber, editor);
             });
             
-            plugin.addOther(function(){
+            plugin.addOther(function() {
                 grabber.parentNode.removeChild(grabber);
             });
             
@@ -200,7 +200,7 @@ define(function(require, exports, module) {
                         var percentage = ((y - startY) / grabber.parentNode.offsetHeight) * 100;
                         session.split = {
                             height: percentage + "%",
-                            session2 : ace.cloneSession(session.session)
+                            session2: ace.cloneSession(session.session)
                         };
                         var splitInfo = initSplit(editor, percentage);
                         
@@ -238,7 +238,7 @@ define(function(require, exports, module) {
             // @todo detect if this already happened
             
             var splitbox = amlNode.appendChild(new ui.vsplitbox({ 
-                "class"  : "ace_split",
+                "class": "ace_split",
                 padding: 7,
                 edge: "7 0 0 0",
                 splitter: true 
@@ -257,11 +257,11 @@ define(function(require, exports, module) {
             var editor2 = new Editor(new Renderer(topPane.$int, ace.theme));
             editors.push(editor2);
             
-            splitbox.$handle.on("dragmove", function(){
+            splitbox.$handle.on("dragmove", function() {
                 editor.resize();
                 editor2.resize();
             });
-            splitbox.$handle.on("dragdrop", function(){
+            splitbox.$handle.on("dragdrop", function() {
                 editor.resize();
                 editor2.resize();
                 
@@ -272,7 +272,7 @@ define(function(require, exports, module) {
                 editor2.setOptions(e.options);
             }, editor);
             
-            function setTheme(){
+            function setTheme() {
                 var theme = ace.theme;
                 editor2.setTheme(theme.path);
                 
@@ -306,7 +306,7 @@ define(function(require, exports, module) {
                 topPane: topPane,
                 bottomPane: bottomPane,
                 editor: editor,
-                editor2    : editor2
+                editor2: editor2
             };
             
             return splits[editor.name];
